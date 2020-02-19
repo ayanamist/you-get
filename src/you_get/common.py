@@ -3,6 +3,7 @@
 import io
 import os
 import re
+import subprocess
 import sys
 import time
 import json
@@ -621,6 +622,20 @@ def url_locations(urls, faker=False, headers={}):
     return locations
 
 
+def url_save_aria2(url, filepath, refer, headers, timeout):
+    args = ["aria2c", "-o", filepath]
+    if refer:
+        args.extend(("--referer", refer))
+    if timeout:
+        args.extend(("--timeout", timeout))
+    for k, v in headers.items():
+        if k and v:
+            args.extend(("--header", "%s: %s" % (k, v)))
+    args.append(url)
+    with open("/dev/stdout", "w") as stdout:
+        subprocess.call(args, stdout=stdout, stderr=stdout)
+
+
 def url_save(
     url, filepath, bar, refer=None, is_part=False, faker=False,
     headers=None, timeout=None, **kwargs
@@ -634,8 +649,8 @@ def url_save(
         file_size = urls_size(url, faker=faker, headers=tmp_headers)
         is_chunked, urls = True, url
     else:
-        file_size = url_size(url, faker=faker, headers=tmp_headers)
-        is_chunked, urls = False, [url]
+        url_save_aria2(url, filepath, refer=refer, headers=fake_headers if faker else tmp_headers, timeout=timeout)
+        return
 
     continue_renameing = True
     while continue_renameing:
